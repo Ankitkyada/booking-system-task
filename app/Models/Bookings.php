@@ -47,7 +47,7 @@ class Bookings extends Model
         return [$request->from_time, $request->to_time, null];
     }
 
-    public static function createBooking($request)
+    public static function createBooking($request, $user)
     {
         [$from, $to, $slot] = Bookings::calculateTimeRange($request);
 
@@ -67,7 +67,7 @@ class Bookings extends Model
 
         // Store booking
         $booking = new Bookings();
-        $booking->user_id = Auth::id();
+        $booking->user_id = Auth::id() ?? $user->id;
         $booking->customer_name = $request->customer_name;
         $booking->customer_email = $request->customer_email;
         $booking->booking_date = $request->booking_date;
@@ -78,5 +78,55 @@ class Bookings extends Model
         $booking->save();
 
         return $booking;
+    }
+
+    public static function getAllBookings($filterData = [])
+    {
+        $query = Bookings::select(
+            'tbl_user_bookings.id',
+            'tbl_user_bookings.customer_name',
+            'tbl_user_bookings.customer_email',
+            'tbl_user_bookings.booking_date',
+            'tbl_user_bookings.booking_type',
+            'tbl_user_bookings.booking_slot',
+            'tbl_user_bookings.from_time',
+            'tbl_user_bookings.to_time',
+            'tbl_user_bookings.created_at'
+        )
+            ->from('tbl_user_bookings');
+
+        // Search
+        if (!empty($filterData['search'])) {
+            $query->where(function ($q) use ($filterData) {
+                $q->where('customer_name', 'like', '%' . $filterData['search'] . '%')
+                    ->orWhere('customer_email', 'like', '%' . $filterData['search'] . '%');
+            });
+        }
+
+        // Filters
+        $filters = $filterData['filters'] ?? [];
+
+        if (!empty($filters['booking_type']) && is_array($filters['booking_type']) && $filters['booking_type'][0] !== null) {
+            $query->whereIn('booking_type', $filters['booking_type']);
+        }
+
+        if (!empty($filters['from']) && !empty($filters['to'])) {
+            $query->whereDate('booking_date', '>=', $filters['from']);
+        }
+
+        if (!empty($filters['to']) && !empty($filters['to'])) {
+            $query->whereDate('booking_date', '<=', $filters['to']);
+        }
+
+        // Sorting
+        if (!empty($filterData['sorting']) && is_array($filterData['sorting'])) {
+            foreach ($filterData['sorting'] as $sort) {
+                $query->orderBy($sort['field'], $sort['dir']);
+            }
+        } else {
+            $query->orderBy('tbl_user_bookings.created_at', 'desc');
+        }
+
+        return $query;
     }
 }

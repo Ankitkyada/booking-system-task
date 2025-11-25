@@ -18,7 +18,7 @@ Route::get('/', function () {
     return view('auth.register');
 });
 
-Route::get('/register', [RegisterController::class, 'registerPage'])->name('register');
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [RegisterController::class, 'register'])->name('register.store');
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -40,3 +40,4 @@ Route::get('/home', [HomeController::class, 'index'])->name('home');
 
 Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
 Route::post('/bookings/store', [BookingController::class, 'store']);
+Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
